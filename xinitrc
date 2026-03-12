@@ -1,0 +1,4 @@
+xclock &
+xeyes &
+
+exec xterm
