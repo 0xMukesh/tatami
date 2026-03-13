@@ -1,4 +1,1 @@
-xclock &
-xeyes &
-
-exec xterm
+exec ./dist/tatami
