@@ -13,13 +13,11 @@ import (
 type WmConfig struct {
 	ModifierMask uint16
 	Launcher     string
-	BorderWidth  uint16
 }
 
 var (
-	modifier    string
-	launcher    string
-	borderWidth uint
+	modifier string
+	launcher string
 )
 
 var modifiersMap = map[string]uint16{
@@ -35,7 +33,6 @@ var modifiersMap = map[string]uint16{
 func Parse() WmConfig {
 	flag.StringVar(&modifier, "mod", "mod1", "modifier key which would be used in key bindings")
 	flag.StringVar(&launcher, "launcher", "dmenu_run", "program which would act like an app launcher")
-	flag.UintVar(&borderWidth, "border-width", 2, "border width around a window")
 
 	flag.Parse()
 
@@ -57,6 +54,5 @@ func Parse() WmConfig {
 	return WmConfig{
 		ModifierMask: modifierMask,
 		Launcher:     launcher,
-		BorderWidth:  uint16(borderWidth),
 	}
 }
