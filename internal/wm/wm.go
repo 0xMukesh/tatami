@@ -160,8 +160,35 @@ func (wm *Wm) handleKeyPressEvent(v xproto.KeyPressEvent) {
 			wm.closeWindow(ws.clients[ws.active])
 		}
 	case keycode == constants.KB_LEFT_ARROW && mod == wm.mod:
-
+		wm.handleWindowNavigation(true)
+	case keycode == constants.KB_RIGHT_ARROW && mod == wm.mod:
+		wm.handleWindowNavigation(false)
 	}
+}
+
+func (wm *Wm) handleWindowNavigation(isLeft bool) {
+	ws := wm.workspaces[wm.activeWorkspace]
+	if (isLeft && ws.active <= 0) || (!isLeft && ws.active >= len(ws.clients)-1) {
+		return
+	}
+
+	if err := xproto.UnmapWindowChecked(wm.conn, ws.clients[ws.active]).Check(); err != nil {
+		slog.Error("failed to unmap window", slog.String("error", err.Error()))
+		return
+	}
+
+	if isLeft {
+		ws.active -= 1
+	} else {
+		ws.active += 1
+	}
+
+	if err := xproto.MapWindowChecked(wm.conn, ws.clients[ws.active]).Check(); err != nil {
+		slog.Error("failed to map window", slog.String("error", err.Error()))
+		return
+	}
+
+	wm.renderTabBarWindow()
 }
 
 func (wm *Wm) handleExposeEvent(v xproto.ExposeEvent) {
