@@ -11,15 +11,18 @@ const (
 	KB_MODSHIFT = xproto.ModMaskShift
 	KB_MODCTRL  = xproto.ModMaskControl
 
-	KB_D     = 40
-	KB_Q     = 24
-	KB_ESC   = 9
-	KB_ENTER = 36
+	KB_D           = 40
+	KB_Q           = 24
+	KB_ESC         = 9
+	KB_ENTER       = 36
+	KB_LEFT_ARROW  = 113
+	KB_RIGHT_ARROW = 114
 
-	DEFAULT_BG       = 0x00000
-	TITLE_BAR_HEIGHT = 24
-	TITLE_BAR_BG     = 0x33333
-	TITLE_BAR_FG     = 0xFFFFFF
+	DEFAULT_BG          = 0x00000
+	TAB_BAR_HEIGHT      = 24
+	TAB_BAR_ACTIVE_BG   = 0x00a3cc
+	TAB_BAR_INACTIVE_BG = 0x262626
+	TAB_BAR_FG          = 0xFFFFFF
 
 	ATOM_WM_PROTOCOLS     = "WM_PROTOCOLS"
 	ATOM_WM_DELETE_WINDOW = "WM_DELETE_WINDOW"
