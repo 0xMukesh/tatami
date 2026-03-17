@@ -11,13 +11,15 @@ import (
 )
 
 type WmConfig struct {
-	ModifierMask uint16
-	Launcher     string
+	Modifier uint16
+	Launcher string
+	Terminal string
 }
 
 var (
 	modifier string
 	launcher string
+	terminal string
 )
 
 var modifiersMap = map[string]uint16{
@@ -33,26 +35,18 @@ var modifiersMap = map[string]uint16{
 func Parse() WmConfig {
 	flag.StringVar(&modifier, "mod", "mod1", "modifier key which would be used in key bindings")
 	flag.StringVar(&launcher, "launcher", "dmenu_run", "program which would act like an app launcher")
+	flag.StringVar(&terminal, "terminal", "kitty", "default terminal app")
 
 	flag.Parse()
 
-	isValidModifier := false
-	var modifierMask uint16
-
-	for k, v := range modifiersMap {
-		if modifier == k {
-			isValidModifier = true
-			modifierMask = uint16(v)
-			break
-		}
-	}
-
+	isValidModifier := slices.Contains(slices.Collect(maps.Keys(modifiersMap)), modifier)
 	if !isValidModifier {
 		slog.Error("invalid modifiers", slog.String("valid modifiers", strings.Join(slices.Collect(maps.Keys(modifiersMap)), ", ")))
 	}
 
 	return WmConfig{
-		ModifierMask: modifierMask,
-		Launcher:     launcher,
+		Modifier: modifiersMap[modifier],
+		Launcher: launcher,
+		Terminal: terminal,
 	}
 }
