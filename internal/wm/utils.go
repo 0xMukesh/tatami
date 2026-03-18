@@ -54,7 +54,7 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 		wm.screen.RootVisual,
 		xproto.CwBackPixel|xproto.CwEventMask,
 		[]uint32{
-			constants.TAB_BAR_INACTIVE_BG,
+			constants.TAB_BAR_BG,
 			xproto.EventMaskExposure,
 		},
 	).Check(); err != nil {
@@ -73,36 +73,32 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 	}, nil
 }
 
-func (wm *Wm) createTabBarGraphicalContexts() (gc GcCache, err error) {
-	activeTabBar, err := xproto.NewGcontextId(wm.conn)
+func (wm *Wm) setupGcCache() (gc GcCache, err error) {
+	activeFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{constants.TAB_BAR_ACTIVE_BG})
 	if err != nil {
-		return gc, fmt.Errorf("failed to assign active tab gc id - %w", err)
+		return gc, fmt.Errorf("failed to create active fill gc - %w", err)
 	}
 
-	inactiveTabBar, err := xproto.NewGcontextId(wm.conn)
+	inactiveFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{constants.TAB_BAR_INACTIVE_BG})
 	if err != nil {
-		return gc, fmt.Errorf("failed to assign inactive tab gc id - %w", err)
+		return gc, fmt.Errorf("failed to create inactive fill gc - %w", err)
 	}
 
-	if err := xproto.CreateGCChecked(
-		wm.conn, activeTabBar, xproto.Drawable(wm.root),
-		xproto.GcForeground|xproto.GcBackground,
-		[]uint32{constants.TAB_BAR_FG, constants.TAB_BAR_ACTIVE_BG},
-	).Check(); err != nil {
-		return gc, fmt.Errorf("failed to create active tab bar gc - %w", err)
+	activeText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{constants.TAB_BAR_ACTIVE_TEXT, constants.TAB_BAR_ACTIVE_BG})
+	if err != nil {
+		return gc, fmt.Errorf("failed to create active text gc - %w", err)
 	}
 
-	if err := xproto.CreateGCChecked(
-		wm.conn, inactiveTabBar, xproto.Drawable(wm.root),
-		xproto.GcForeground|xproto.GcBackground,
-		[]uint32{constants.TAB_BAR_FG, constants.TAB_BAR_INACTIVE_BG},
-	).Check(); err != nil {
-		return gc, fmt.Errorf("failed to create inactive tab bar gc - %w", err)
+	inactiveText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{constants.TAB_BAR_INACTIVE_TEXT, constants.TAB_BAR_INACTIVE_BG})
+	if err != nil {
+		return gc, fmt.Errorf("failed to create inactive text gc - %w", err)
 	}
 
 	return GcCache{
-		InactiveTabBar: inactiveTabBar,
-		ActiveTabBar:   activeTabBar,
+		activeFill:   activeFill,
+		activeText:   activeText,
+		inactiveFill: inactiveFill,
+		inactiveText: inactiveText,
 	}, nil
 }
 
@@ -123,6 +119,22 @@ func (wm *Wm) getAndCacheAtoms(properties []string) error {
 	}
 
 	return nil
+}
+
+func (wm *Wm) createGraphicalContext(valueMask uint32, valueList []uint32) (xproto.Gcontext, error) {
+	gcId, err := xproto.NewGcontextId(wm.conn)
+	if err != nil {
+		return xproto.BadGContext, fmt.Errorf("failed to assign graphical context id - %w", err)
+	}
+
+	if err := xproto.CreateGCChecked(
+		wm.conn, gcId, xproto.Drawable(wm.root),
+		valueMask, valueList,
+	).Check(); err != nil {
+		return xproto.BadGContext, fmt.Errorf("failed to create graphical context - %w", err)
+	}
+
+	return gcId, nil
 }
 
 func (wm *Wm) doesSupportDeleteProtocol(window xproto.Window) bool {

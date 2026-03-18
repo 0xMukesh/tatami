@@ -25,15 +25,17 @@ func (wm *Wm) renderTabBarWindow() {
 		}
 
 		isActive := i == ws.active
+		fillGc := wm.gcCache.inactiveFill
+		textGc := wm.gcCache.inactiveText
 
-		gc := wm.gcCache.InactiveTabBar
 		if isActive {
-			gc = wm.gcCache.ActiveTabBar
+			fillGc = wm.gcCache.activeFill
+			textGc = wm.gcCache.activeText
 		}
 
 		if err := xproto.PolyFillRectangleChecked(
 			wm.conn, xproto.Drawable(ws.tabBar),
-			gc,
+			fillGc,
 			[]xproto.Rectangle{{
 				X: int16(startingX), Y: 0, Width: uint16(width), Height: constants.TAB_BAR_HEIGHT,
 			}},
@@ -44,7 +46,7 @@ func (wm *Wm) renderTabBarWindow() {
 
 		title := wm.getWindowTitle(window)
 		if err := xproto.ImageText8Checked(
-			wm.conn, byte(len(title)), xproto.Drawable(ws.tabBar), gc, int16(startingX)+8, int16(constants.TAB_BAR_HEIGHT/2)+4,
+			wm.conn, byte(len(title)), xproto.Drawable(ws.tabBar), textGc, int16(startingX)+8, int16(constants.TAB_BAR_HEIGHT/2)+4,
 			title,
 		).Check(); err != nil {
 			slog.Error("failed to properly render window title in tab err", slog.String("error", err.Error()))

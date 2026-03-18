@@ -19,8 +19,10 @@ type Workspace struct {
 }
 
 type GcCache struct {
-	InactiveTabBar xproto.Gcontext
-	ActiveTabBar   xproto.Gcontext
+	activeFill   xproto.Gcontext
+	activeText   xproto.Gcontext
+	inactiveFill xproto.Gcontext
+	inactiveText xproto.Gcontext
 }
 
 type Wm struct {
@@ -82,7 +84,7 @@ func New(wmConfig config.WmConfig) (*Wm, error) {
 	}
 	wm.workspaces[0] = defaultWorkspace
 
-	gcCache, err := wm.createTabBarGraphicalContexts()
+	gcCache, err := wm.setupGcCache()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gc cache - %w", err)
 	}

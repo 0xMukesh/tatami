@@ -59,7 +59,7 @@ func (wm *Wm) handleConfigureRequest(v xproto.ConfigureRequestEvent) {
 	x := int16(0)
 	y := int16(constants.TAB_BAR_HEIGHT)
 	width := wm.screen.WidthInPixels
-	height := wm.screen.HeightInPixels - uint16(constants.TAB_BAR_HEIGHT)
+	height := wm.screen.HeightInPixels - uint16(constants.TAB_BAR_HEIGHT) - uint16(constants.BOTTOM_BAR_HEIGHT)
 
 	if ws == nil {
 		x = v.X
@@ -140,7 +140,7 @@ func (wm *Wm) handleMapRequest(v xproto.MapRequestEvent) {
 		[]uint32{
 			0, constants.TAB_BAR_HEIGHT,
 			uint32(wm.screen.WidthInPixels),
-			uint32(wm.screen.HeightInPixels) - uint32(constants.TAB_BAR_HEIGHT),
+			uint32(wm.screen.HeightInPixels) - uint32(constants.TAB_BAR_HEIGHT) - uint32(constants.BOTTOM_BAR_HEIGHT),
 		},
 	).Check(); err != nil {
 		slog.Error("failed to configure child window", slog.String("error", err.Error()))
