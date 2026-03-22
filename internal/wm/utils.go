@@ -30,7 +30,7 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 		wm.screen.RootVisual,
 		xproto.CwBackPixel|xproto.CwEventMask,
 		[]uint32{
-			constants.DEFAULT_BG,
+			wm.config.Bg,
 			xproto.EventMaskSubstructureNotify | xproto.EventMaskSubstructureRedirect,
 		},
 	).Check(); err != nil {
@@ -48,13 +48,13 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 		tabBar,
 		frame,
 		0, 0,
-		wm.screen.WidthInPixels, constants.TAB_BAR_HEIGHT,
+		wm.screen.WidthInPixels, wm.config.TabBarConfig.Height,
 		0,
 		xproto.WindowClassInputOutput,
 		wm.screen.RootVisual,
 		xproto.CwBackPixel|xproto.CwEventMask,
 		[]uint32{
-			constants.TAB_BAR_BG,
+			wm.config.TabBarConfig.InactiveBg,
 			xproto.EventMaskExposure,
 		},
 	).Check(); err != nil {
@@ -74,22 +74,22 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 }
 
 func (wm *Wm) setupGcCache() (gc GcCache, err error) {
-	activeFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{constants.TAB_BAR_ACTIVE_BG})
+	activeFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{wm.config.TabBarConfig.ActiveBg})
 	if err != nil {
 		return gc, fmt.Errorf("failed to create active fill gc - %w", err)
 	}
 
-	inactiveFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{constants.TAB_BAR_INACTIVE_BG})
+	inactiveFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{wm.config.TabBarConfig.InactiveBg})
 	if err != nil {
 		return gc, fmt.Errorf("failed to create inactive fill gc - %w", err)
 	}
 
-	activeText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{constants.TAB_BAR_ACTIVE_TEXT, constants.TAB_BAR_ACTIVE_BG})
+	activeText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{wm.config.TabBarConfig.ActiveText, wm.config.TabBarConfig.ActiveBg})
 	if err != nil {
 		return gc, fmt.Errorf("failed to create active text gc - %w", err)
 	}
 
-	inactiveText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{constants.TAB_BAR_INACTIVE_TEXT, constants.TAB_BAR_INACTIVE_BG})
+	inactiveText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{wm.config.TabBarConfig.InactiveText, wm.config.TabBarConfig.InactiveBg})
 	if err != nil {
 		return gc, fmt.Errorf("failed to create inactive text gc - %w", err)
 	}

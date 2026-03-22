@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os/exec"
 
-	"github.com/0xmukesh/tatami/internal/constants"
+	"github.com/0xmukesh/tatami/internal/config"
 )
 
 type Keybinding struct {
@@ -13,67 +13,55 @@ type Keybinding struct {
 	handler func()
 }
 
-func (wm *Wm) newKb(keycode uint16, handler func()) Keybinding {
+func (wm *Wm) newKb(keycode, mod uint16, handler func()) Keybinding {
 	return Keybinding{
 		keycode: keycode,
-		mod:     wm.config.Modifier,
-		handler: handler,
-	}
-}
-
-func (wm *Wm) newKbWithExtraMod(keycode, extraMod uint16, handler func()) Keybinding {
-	return Keybinding{
-		keycode: keycode,
-		mod:     wm.config.Modifier | extraMod,
+		mod:     mod,
 		handler: handler,
 	}
 }
 
 func (wm *Wm) setupKeybindings() {
-	wm.keybindings = []Keybinding{
-		wm.newKb(constants.KB_D, func() {
-			if err := exec.Command(wm.config.Launcher).Start(); err != nil {
-				slog.Error("failed to launch app launcher", slog.String("error", err.Error()))
-				return
-			}
-		}),
-		wm.newKb(constants.KB_ENTER, func() {
-			if err := exec.Command(wm.config.Terminal).Start(); err != nil {
-				slog.Error("failed to launch app launcher", slog.String("error", err.Error()))
-				return
-			}
-		}),
-		wm.newKb(constants.KB_Q, func() {
-			ws := wm.workspaces[wm.activeWorkspace]
-			if len(ws.clients) > 0 {
-				wm.closeWindow(ws.clients[ws.active])
-			}
-		}),
-		wm.newKb(constants.KB_LEFT_ARROW, func() {
-			wm.handleWindowNavigation(true)
-		}),
-		wm.newKb(constants.KB_RIGHT_ARROW, func() {
-			wm.handleWindowNavigation(false)
-		}),
-		wm.newKbWithExtraMod(constants.KB_LEFT_ARROW, constants.KB_MODSHIFT, func() {
-			ws := wm.workspaces[wm.activeWorkspace]
-			if ws.active <= 0 {
-				return
-			}
+	for _, kb := range wm.config.Keybindings {
+		var handler func()
 
-			wm.rearrangeWindows(ws.active, ws.active-1)
-			ws.active -= 1
-			wm.renderTabBarWindow()
-		}),
-		wm.newKbWithExtraMod(constants.KB_RIGHT_ARROW, constants.KB_MODSHIFT, func() {
-			ws := wm.workspaces[wm.activeWorkspace]
-			if ws.active >= len(ws.clients)-1 {
-				return
+		switch kb.Action {
+		case config.ActionExec:
+			handler = func() {
+				if err := exec.Command(kb.Command).Start(); err != nil {
+					slog.Error("failed to launch app launcher", slog.String("error", err.Error()))
+					return
+				}
 			}
+		case config.ActionCloseFocused:
+			handler = func() {
+				ws := wm.workspaces[wm.activeWorkspace]
+				if len(ws.clients) > 0 {
+					wm.closeWindow(ws.clients[ws.active])
+				}
+			}
+		case config.ActionFocusLeft:
+			handler = func() {
+				wm.handleFocusWindow(true)
+			}
+		case config.ActionFocusRight:
+			handler = func() {
+				wm.handleFocusWindow(false)
+			}
+		case config.ActionMoveLeft:
+			handler = func() {
+				wm.handleMoveWindow(true)
+			}
+		case config.ActionMoveRight:
+			handler = func() {
+				wm.handleMoveWindow(false)
+			}
+		case config.ActionQuit:
+			handler = func() {
+				wm.Close()
+			}
+		}
 
-			wm.rearrangeWindows(ws.active, ws.active+1)
-			ws.active += 1
-			wm.renderTabBarWindow()
-		}),
+		wm.keybindings = append(wm.keybindings, wm.newKb(kb.Keycode, kb.Mod, handler))
 	}
 }

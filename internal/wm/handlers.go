@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/0xmukesh/tatami/internal/constants"
 	"github.com/jezek/xgb/xproto"
 )
 
@@ -17,7 +16,7 @@ func (wm *Wm) handleKeyPressEvent(v xproto.KeyPressEvent) {
 	}
 }
 
-func (wm *Wm) handleWindowNavigation(isLeft bool) {
+func (wm *Wm) handleFocusWindow(isLeft bool) {
 	ws := wm.workspaces[wm.activeWorkspace]
 	if (isLeft && ws.active <= 0) || (!isLeft && ws.active >= len(ws.clients)-1) {
 		return
@@ -42,6 +41,23 @@ func (wm *Wm) handleWindowNavigation(isLeft bool) {
 	wm.renderTabBarWindow()
 }
 
+func (wm *Wm) handleMoveWindow(isLeft bool) {
+	ws := wm.workspaces[wm.activeWorkspace]
+	if (isLeft && ws.active <= 0) || (!isLeft && ws.active >= len(ws.clients)-1) {
+		return
+	}
+
+	if isLeft {
+		wm.rearrangeWindows(ws.active, ws.active-1)
+		ws.active -= 1
+	} else {
+		wm.rearrangeWindows(ws.active, ws.active+1)
+		ws.active += 1
+	}
+
+	wm.renderTabBarWindow()
+}
+
 func (wm *Wm) handleExposeEvent(v xproto.ExposeEvent) {
 	if v.Count != 0 {
 		return
@@ -57,9 +73,9 @@ func (wm *Wm) handleConfigureRequest(v xproto.ConfigureRequestEvent) {
 	ws := wm.getWorkspaceByWindow(v.Window)
 
 	x := int16(0)
-	y := int16(constants.TAB_BAR_HEIGHT)
+	y := int16(wm.config.TabBarConfig.Height)
 	width := wm.screen.WidthInPixels
-	height := wm.screen.HeightInPixels - uint16(constants.TAB_BAR_HEIGHT) - uint16(constants.BOTTOM_BAR_HEIGHT)
+	height := wm.screen.HeightInPixels - uint16(wm.config.TabBarConfig.Height)
 
 	if ws == nil {
 		x = v.X
@@ -127,7 +143,7 @@ func (wm *Wm) handleMapRequest(v xproto.MapRequestEvent) {
 	}
 
 	if err := xproto.ReparentWindowChecked(
-		wm.conn, win, ws.frame, 0, int16(constants.TAB_BAR_HEIGHT),
+		wm.conn, win, ws.frame, 0, int16(wm.config.TabBarConfig.Height),
 	).Check(); err != nil {
 		slog.Error("failed to reparent client window", slog.String("error", err.Error()))
 		return
@@ -138,9 +154,9 @@ func (wm *Wm) handleMapRequest(v xproto.MapRequestEvent) {
 		win,
 		xproto.ConfigWindowX|xproto.ConfigWindowY|xproto.ConfigWindowWidth|xproto.ConfigWindowHeight,
 		[]uint32{
-			0, constants.TAB_BAR_HEIGHT,
+			0, uint32(wm.config.TabBarConfig.Height),
 			uint32(wm.screen.WidthInPixels),
-			uint32(wm.screen.HeightInPixels) - uint32(constants.TAB_BAR_HEIGHT) - uint32(constants.BOTTOM_BAR_HEIGHT),
+			uint32(wm.screen.HeightInPixels) - uint32(wm.config.TabBarConfig.Height),
 		},
 	).Check(); err != nil {
 		slog.Error("failed to configure child window", slog.String("error", err.Error()))

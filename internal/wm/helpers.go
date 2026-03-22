@@ -37,7 +37,8 @@ func (wm *Wm) renderTabBarWindow() {
 			wm.conn, xproto.Drawable(ws.tabBar),
 			fillGc,
 			[]xproto.Rectangle{{
-				X: int16(startingX), Y: 0, Width: uint16(width), Height: constants.TAB_BAR_HEIGHT,
+				X: int16(startingX), Y: 0,
+				Width: uint16(width), Height: wm.config.TabBarConfig.Height,
 			}},
 		).Check(); err != nil {
 			slog.Error("failed to properly render fill rectangle in tab bar", slog.String("error", err.Error()))
@@ -46,7 +47,8 @@ func (wm *Wm) renderTabBarWindow() {
 
 		title := wm.getWindowTitle(window)
 		if err := xproto.ImageText8Checked(
-			wm.conn, byte(len(title)), xproto.Drawable(ws.tabBar), textGc, int16(startingX)+8, int16(constants.TAB_BAR_HEIGHT/2)+4,
+			wm.conn, byte(len(title)), xproto.Drawable(ws.tabBar), textGc,
+			int16(startingX)+8, int16(wm.config.TabBarConfig.Height/2)+4,
 			title,
 		).Check(); err != nil {
 			slog.Error("failed to properly render window title in tab err", slog.String("error", err.Error()))

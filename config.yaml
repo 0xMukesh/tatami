@@ -1,12 +1,18 @@
 general:
-  launcher: "dmenu_run"
-  terminal: "kitty"
+  bg: 0x000000
+
+  tab_bar:
+    height: 20
+    active_bg: 0x00a3cc
+    inactive_bg: 0x262626
+    active_text: 0xffffff
+    inactive_text: 0xa3a3a3
 
 keybindings:
   modifier: "mod1"
 
   keys:
-    - key: "return"
+    - key: "enter"
       action: "exec"
       command: "kitty"
 
@@ -15,6 +21,18 @@ keybindings:
 
     - key: "shift+e"
       action: "quit"
+
+    - key: "left"
+      action: "focus_left"
+
+    - key: "right"
+      action: "focus_right"
+
+    - key: "shift+left"
+      action: "move_left"
+
+    - key: "shift+right"
+      action: "move_right"
 
     - key: "d"
       action: "exec"
