@@ -1,13 +1,14 @@
 package config
 
 import (
-	"flag"
+	"errors"
+	"fmt"
 	"log/slog"
-	"maps"
-	"slices"
+	"os"
 	"strings"
 
 	"github.com/0xmukesh/tatami/internal/constants"
+	"github.com/spf13/viper"
 )
 
 type WmConfig struct {
@@ -15,12 +16,6 @@ type WmConfig struct {
 	Launcher string
 	Terminal string
 }
-
-var (
-	modifier string
-	launcher string
-	terminal string
-)
 
 var modifiersMap = map[string]uint16{
 	"mod1":  constants.KB_MOD1,
@@ -32,21 +27,54 @@ var modifiersMap = map[string]uint16{
 	"shift": constants.KB_MODSHIFT,
 }
 
-func Parse() WmConfig {
-	flag.StringVar(&modifier, "mod", "mod1", "modifier key which would be used in key bindings")
-	flag.StringVar(&launcher, "launcher", "dmenu_run", "program which would act like an app launcher")
-	flag.StringVar(&terminal, "terminal", "kitty", "default terminal app")
+func validModifiers() string {
+	keys := make([]string, 0, len(modifiersMap))
+	for k := range modifiersMap {
+		keys = append(keys, k)
+	}
 
-	flag.Parse()
+	return strings.Join(keys, ", ")
+}
 
-	isValidModifier := slices.Contains(slices.Collect(maps.Keys(modifiersMap)), modifier)
-	if !isValidModifier {
-		slog.Error("invalid modifiers", slog.String("valid modifiers", strings.Join(slices.Collect(maps.Keys(modifiersMap)), ", ")))
+func parse() (WmConfig, error) {
+	var errs []error
+
+	modifier := viper.GetString("keybindings.modifier")
+	launcher := viper.GetString("general.launcher")
+	terminal := viper.GetString("general.terminal")
+
+	if modifier == "" {
+		errs = append(errs, fmt.Errorf("missing `keybindings.modifier` (valid: %s)", validModifiers()))
+	}
+	if launcher == "" {
+		errs = append(errs, errors.New("missing `general.launcher`"))
+	}
+	if terminal == "" {
+		errs = append(errs, errors.New("missing `general.terminal`"))
+	}
+
+	if len(errs) > 0 {
+		return WmConfig{}, errors.Join(errs...)
+	}
+
+	modifierVal, ok := modifiersMap[modifier]
+	if !ok {
+		return WmConfig{}, fmt.Errorf("invalid modifier %q (valid: %s)", modifier, validModifiers())
 	}
 
 	return WmConfig{
-		Modifier: modifiersMap[modifier],
+		Modifier: modifierVal,
 		Launcher: launcher,
 		Terminal: terminal,
+	}, nil
+}
+
+func Parse() WmConfig {
+	cfg, err := parse()
+	if err != nil {
+		slog.Error("invalid config", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
+
+	return cfg
 }

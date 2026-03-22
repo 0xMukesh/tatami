@@ -18,7 +18,7 @@ const (
 	KB_LEFT_ARROW  = 113
 	KB_RIGHT_ARROW = 114
 
-	TAB_BAR_HEIGHT        = 24
+	TAB_BAR_HEIGHT        = 20
 	BOTTOM_BAR_HEIGHT     = 20
 	DEFAULT_BG            = 0x000000
 	TAB_BAR_BG            = 0xffffff

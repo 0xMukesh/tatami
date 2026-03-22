@@ -1,0 +1,21 @@
+general:
+  launcher: "dmenu_run"
+  terminal: "kitty"
+
+keybindings:
+  modifier: "mod1"
+
+  keys:
+    - key: "return"
+      action: "exec"
+      command: "kitty"
+
+    - key: "q"
+      action: "close_focused"
+
+    - key: "shift+e"
+      action: "quit"
+
+    - key: "d"
+      action: "exec"
+      command: "dmenu_run"
