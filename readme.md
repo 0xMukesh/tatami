@@ -1,6 +1,10 @@
 # tatami
 
-a tiny x11 window manager, written in golang. it is meant to be a _pure tabbed_ window manager, similar to [i3wm's tabbed view](https://i3wm.org/docs/userguide.html). Here is a [demo](https://pub-11c71e7f98584b259a822b361682a0b7.r2.dev/tatami-early-demo.mp4) for it.
+a tiny x11 window manager, written in golang. it is meant to be a _pure tabbed_ window manager, similar to [i3wm's tabbed view](https://i3wm.org/docs/userguide.html)
+
+## demo
+
+https://github.com/user-attachments/assets/7069d9b2-caa3-4c75-b6e1-68a27384ecf3
 
 ## references
 
