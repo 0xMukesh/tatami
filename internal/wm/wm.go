@@ -12,11 +12,10 @@ import (
 )
 
 type Workspace struct {
-	frame     xproto.Window
-	tabBar    xproto.Window
-	bottomBar xproto.Window
-	clients   []xproto.Window
-	active    int
+	frame   xproto.Window
+	tabBar  xproto.Window
+	clients []xproto.Window
+	active  int
 }
 
 type GcPair struct {
@@ -39,6 +38,7 @@ type Wm struct {
 	setup           *xproto.SetupInfo
 	screen          *xproto.ScreenInfo
 	root            xproto.Window
+	bottomBar       xproto.Window
 	activeWorkspace int
 	workspaces      map[int]*Workspace
 	atoms           map[string]xproto.Atom
@@ -92,6 +92,12 @@ func New(wmConfig config.WmConfig) (*Wm, error) {
 		return nil, fmt.Errorf("failed to create default workspace - %w", err)
 	}
 	wm.workspaces[0] = defaultWorkspace
+
+	bottomBar, err := wm.setupBottomBar()
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup bottom bar - %w", err)
+	}
+	wm.bottomBar = bottomBar
 
 	gcCache, err := wm.setupGcCache()
 	if err != nil {

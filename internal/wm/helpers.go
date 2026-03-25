@@ -3,6 +3,7 @@ package wm
 import (
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
 
 	"github.com/0xmukesh/tatami/internal/constants"
@@ -25,7 +26,7 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 		frame,
 		wm.root,
 		0, 0,
-		wm.screen.WidthInPixels, wm.screen.HeightInPixels,
+		wm.screen.WidthInPixels, wm.screen.HeightInPixels-wm.config.BottomBarConfig.Height,
 		0,
 		xproto.WindowClassInputOutput,
 		wm.screen.RootVisual,
@@ -62,44 +63,15 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 		return ws, fmt.Errorf("failed to create tab bar window - %w", err)
 	}
 
-	bottomBar, err := xproto.NewWindowId(wm.conn)
-	if err != nil {
-		return ws, fmt.Errorf("failed to assign bottom bar window id - %w", err)
-	}
-
-	if err := xproto.CreateWindowChecked(
-		wm.conn,
-		wm.screen.RootDepth,
-		bottomBar,
-		frame,
-		0, int16(wm.screen.HeightInPixels)-int16(wm.config.BottomBarConfig.Height),
-		wm.screen.WidthInPixels, wm.config.BottomBarConfig.Height,
-		0,
-		xproto.WindowClassInputOutput,
-		wm.screen.RootVisual,
-		xproto.CwBackPixel|xproto.CwEventMask,
-		[]uint32{
-			wm.config.BottomBarConfig.InactiveBg,
-			xproto.EventMaskExposure,
-		},
-	).Check(); err != nil {
-		return ws, fmt.Errorf("failed to create bottom bar window - %w", err)
-	}
-
 	if err := xproto.MapWindowChecked(wm.conn, frame).Check(); err != nil {
 		return ws, fmt.Errorf("failed to map frame window - %w", err)
-	}
-
-	if err := xproto.MapWindowChecked(wm.conn, bottomBar).Check(); err != nil {
-		return ws, fmt.Errorf("failed to map bottom bar window - %w", err)
 	}
 
 	wm.registerShortcuts(frame)
 
 	return &Workspace{
-		frame:     frame,
-		tabBar:    tabBar,
-		bottomBar: bottomBar,
+		frame:  frame,
+		tabBar: tabBar,
 	}, nil
 }
 
@@ -156,8 +128,27 @@ func (wm *Wm) renderTabBarWindow() {
 func (wm *Wm) renderBottomBarWindow() {
 	width := 20
 
-	for i, ws := range wm.workspaces {
-		startingX := i * width // TODO: update this
+	// clear previous state before redrawing
+	if err := xproto.PolyFillRectangleChecked(
+		wm.conn, xproto.Drawable(wm.bottomBar),
+		wm.gcCache.Bottom.Inactive.Fill,
+		[]xproto.Rectangle{{
+			X: 0, Y: 0,
+			Width: wm.screen.WidthInPixels, Height: wm.config.BottomBarConfig.Height,
+		}},
+	).Check(); err != nil {
+		slog.Error("failed to clear bottom bar", slog.String("error", err.Error()))
+		return
+	}
+
+	keys := make([]int, 0, len(wm.workspaces))
+	for i := range wm.workspaces {
+		keys = append(keys, i)
+	}
+	slices.Sort(keys)
+
+	for pos, i := range keys {
+		startingX := pos * width
 
 		fillGc := wm.gcCache.Bottom.Inactive.Fill
 		textGc := wm.gcCache.Bottom.Inactive.Text
@@ -168,7 +159,7 @@ func (wm *Wm) renderBottomBarWindow() {
 		}
 
 		if err := xproto.PolyFillRectangleChecked(
-			wm.conn, xproto.Drawable(ws.bottomBar),
+			wm.conn, xproto.Drawable(wm.bottomBar),
 			fillGc,
 			[]xproto.Rectangle{{
 				X: int16(startingX), Y: 0,
@@ -182,7 +173,7 @@ func (wm *Wm) renderBottomBarWindow() {
 		wsStr := strconv.Itoa(i + 1)
 
 		if err := xproto.ImageText8Checked(
-			wm.conn, byte(len(wsStr)), xproto.Drawable(ws.bottomBar), textGc,
+			wm.conn, byte(len(wsStr)), xproto.Drawable(wm.bottomBar), textGc,
 			int16(startingX)+8, int16(wm.config.BottomBarConfig.Height/2)+4,
 			wsStr,
 		).Check(); err != nil {

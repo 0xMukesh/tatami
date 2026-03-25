@@ -9,6 +9,38 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
+func (wm *Wm) setupBottomBar() (xproto.Window, error) {
+	bottomBar, err := xproto.NewWindowId(wm.conn)
+	if err != nil {
+		return xproto.BadWindow, fmt.Errorf("failed to assign bottom bar window id - %w", err)
+	}
+
+	if err := xproto.CreateWindowChecked(
+		wm.conn,
+		wm.screen.RootDepth,
+		bottomBar,
+		wm.root,
+		0, int16(wm.screen.HeightInPixels)-int16(wm.config.BottomBarConfig.Height),
+		wm.screen.WidthInPixels, wm.config.BottomBarConfig.Height,
+		0,
+		xproto.WindowClassInputOutput,
+		wm.screen.RootVisual,
+		xproto.CwBackPixel|xproto.CwEventMask,
+		[]uint32{
+			wm.config.BottomBarConfig.InactiveBg,
+			xproto.EventMaskExposure,
+		},
+	).Check(); err != nil {
+		return xproto.BadWindow, fmt.Errorf("failed to create bottom bar window - %w", err)
+	}
+
+	if err := xproto.MapWindowChecked(wm.conn, bottomBar).Check(); err != nil {
+		return xproto.BadWindow, fmt.Errorf("failed to map bottom bar window - %w", err)
+	}
+
+	return bottomBar, nil
+}
+
 func (wm *Wm) createBarGcState(cfg config.BarConfig) (GcState, error) {
 	activeFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{cfg.ActiveBg})
 	if err != nil {

@@ -58,6 +58,75 @@ func (wm *Wm) handleMoveWindow(isLeft bool) {
 	wm.renderTabBarWindow()
 }
 
+func (wm *Wm) handleFocusWorkspace(wsNum int) {
+	currIdx := wm.activeWorkspace
+	newIdx := wsNum - 1
+	currWs := wm.workspaces[currIdx]
+	newWs, ok := wm.workspaces[newIdx]
+
+	if newIdx == currIdx {
+		return
+	}
+
+	wm.activeWorkspace = newIdx
+
+	if !ok {
+		ws, err := wm.createWorkspace(newIdx)
+		if err != nil {
+			slog.Error("failed to create new workspace", slog.String("error", err.Error()))
+			return
+		}
+
+		wm.workspaces[newIdx] = ws
+		newWs = ws
+	}
+
+	// unmap current workspace's frame window, active window and tab bar
+	if err := xproto.UnmapWindowChecked(wm.conn, currWs.frame).Check(); err != nil {
+		slog.Error("failed to unmap frame window", slog.String("error", err.Error()))
+		return
+	}
+
+	if err := xproto.UnmapWindowChecked(wm.conn, currWs.tabBar).Check(); err != nil {
+		slog.Error("failed to unmap tab bar", slog.String("error", err.Error()))
+		return
+	}
+
+	if len(currWs.clients) > 0 {
+		if err := xproto.UnmapWindowChecked(wm.conn, currWs.clients[currWs.active]).Check(); err != nil {
+			slog.Error("failed to unmap active window", slog.String("error", err.Error()))
+			return
+		}
+	}
+
+	if len(currWs.clients) == 0 {
+		xproto.DestroyWindow(wm.conn, currWs.frame)
+		delete(wm.workspaces, currIdx)
+	}
+
+	// map new workspace's frame window, active window and tab bar
+	if err := xproto.MapWindowChecked(wm.conn, newWs.frame).Check(); err != nil {
+		slog.Error("failed to map new ws frame window", slog.String("error", err.Error()))
+		return
+	}
+
+	if len(newWs.clients) > 0 {
+		if err := xproto.MapWindowChecked(wm.conn, newWs.clients[newWs.active]).Check(); err != nil {
+			slog.Error("failed to map window", slog.String("error", err.Error()))
+			return
+		}
+	}
+
+	if len(newWs.clients) > 0 {
+		if err := xproto.MapWindowChecked(wm.conn, newWs.tabBar).Check(); err != nil {
+			slog.Error("failed to map tab bar", slog.String("error", err.Error()))
+			return
+		}
+	}
+
+	wm.renderBottomBarWindow()
+}
+
 func (wm *Wm) handleExposeEvent(v xproto.ExposeEvent) {
 	if v.Count != 0 {
 		return
@@ -67,7 +136,7 @@ func (wm *Wm) handleExposeEvent(v xproto.ExposeEvent) {
 	switch v.Window {
 	case ws.tabBar:
 		wm.renderTabBarWindow()
-	case ws.bottomBar:
+	case wm.bottomBar:
 		wm.renderBottomBarWindow()
 	}
 }

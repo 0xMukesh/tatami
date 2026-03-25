@@ -11,9 +11,9 @@ general:
   bottom_bar:
     height: 20
     active_bg: 0x00a3cc
-    inactive_bg: 0xf2f2f2
+    inactive_bg: 0x262626
     active_text: 0xffffff
-    inactive_text: 0xc3c3c3
+    inactive_text: 0xa3a3a3
 
 keybindings:
   modifier: "mod1"
@@ -44,3 +44,43 @@ keybindings:
     - key: "d"
       action: "exec"
       command: "dmenu_run"
+
+    - key: "1"
+      action: "focus_workspace"
+      args: "1"
+
+    - key: "2"
+      action: "focus_workspace"
+      args: "2"
+
+    - key: "3"
+      action: "focus_workspace"
+      args: "3"
+
+    - key: "4"
+      action: "focus_workspace"
+      args: "4"
+
+    - key: "5"
+      action: "focus_workspace"
+      args: "5"
+
+    - key: "6"
+      action: "focus_workspace"
+      args: "6"
+
+    - key: "7"
+      action: "focus_workspace"
+      args: "7"
+
+    - key: "8"
+      action: "focus_workspace"
+      args: "8"
+
+    - key: "9"
+      action: "focus_workspace"
+      args: "9"
+
+    - key: "0"
+      action: "focus_workspace"
+      args: "10"

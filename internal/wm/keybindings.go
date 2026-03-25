@@ -3,6 +3,7 @@ package wm
 import (
 	"log/slog"
 	"os/exec"
+	"strconv"
 
 	"github.com/0xmukesh/tatami/internal/config"
 )
@@ -55,6 +56,16 @@ func (wm *Wm) setupKeybindings() {
 		case config.ActionMoveRight:
 			handler = func() {
 				wm.handleMoveWindow(false)
+			}
+		case config.ActionFocusWorkspace:
+			handler = func() {
+				wsNum, err := strconv.Atoi(kb.Args)
+				if err != nil {
+					slog.Error("invalid ws num", slog.String("got", kb.Args), slog.String("error", err.Error()))
+					return
+				}
+
+				wm.handleFocusWorkspace(wsNum)
 			}
 		case config.ActionQuit:
 			handler = func() {

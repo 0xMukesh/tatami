@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/0xmukesh/tatami/internal/constants"
@@ -32,6 +33,7 @@ type RawKeyBinding struct {
 	Key     string `mapstructure:"key"`
 	Action  string `mapstructure:"action"`
 	Command string `mapstructure:"command"`
+	Args    string `mapstructure:"args"`
 }
 
 type Action string
@@ -42,39 +44,57 @@ type Keybinding struct {
 	Keycode uint16
 	Command string
 	Action  Action
+	Args    string
 }
 
 const (
-	ActionExec         Action = "exec"
-	ActionCloseFocused Action = "close_focused"
-	ActionQuit         Action = "quit"
-	ActionFocusLeft    Action = "focus_left"
-	ActionFocusRight   Action = "focus_right"
-	ActionMoveLeft     Action = "move_left"
-	ActionMoveRight    Action = "move_right"
+	ActionExec                  Action = "exec"
+	ActionCloseFocused          Action = "close_focused"
+	ActionQuit                  Action = "quit"
+	ActionFocusLeft             Action = "focus_left"
+	ActionFocusRight            Action = "focus_right"
+	ActionMoveLeft              Action = "move_left"
+	ActionMoveRight             Action = "move_right"
+	ActionFocusWorkspace        Action = "focus_workspace"
+	ActionMoveWindowToWorkspace Action = "move_window_to_workspace"
 )
 
 var validKeybindingActions = []Action{
 	ActionExec, ActionCloseFocused, ActionQuit,
 	ActionFocusLeft, ActionFocusRight, ActionMoveLeft,
-	ActionMoveRight,
+	ActionMoveRight, ActionFocusWorkspace, ActionMoveWindowToWorkspace,
 }
 
-func parseRawKeybinding(raw RawKeyBinding, defaultModifier uint16) (Keybinding, error) {
+func parseRawKeybinding(raw RawKeyBinding, defaultModifier uint16) (kb Keybinding, err error) {
 	if raw.Key == "" {
-		return Keybinding{}, fmt.Errorf("keybinding is missing `key`")
+		return kb, fmt.Errorf("keybinding is missing `key`")
 	}
 	if raw.Action == "" {
-		return Keybinding{}, fmt.Errorf("keybinding is missing `action`")
+		return kb, fmt.Errorf("keybinding is missing `action`")
 	}
 
 	action := Action(raw.Action)
 	if !slices.Contains(validKeybindingActions, action) {
-		return Keybinding{}, fmt.Errorf("keybinding %q has unknown action %q", raw.Key, action)
+		return kb, fmt.Errorf("keybinding %q has unknown action %q", raw.Key, action)
 	}
 
 	if action == ActionExec && raw.Command == "" {
-		return Keybinding{}, fmt.Errorf("keybinding %q with action `exec` is missing command", raw.Key)
+		return kb, fmt.Errorf("keybinding %q with action %q is missing command", raw.Key, action)
+	}
+
+	if action == ActionFocusWorkspace || action == ActionMoveWindowToWorkspace {
+		if raw.Args == "" {
+			return kb, fmt.Errorf("keybinding %q with action %q is missing args", raw.Key, action)
+		}
+
+		num, err := strconv.Atoi(raw.Args)
+		if err != nil {
+			return kb, fmt.Errorf("keybinding %q with action %q has invalid args. expected number. got %s", raw.Key, action, raw.Args)
+		}
+
+		if num < 0 || num > 10 {
+			return kb, fmt.Errorf("keybinding %q with action %q has invalid args. expected arg to be in range of [0, 10]. got %d", raw.Key, action, num)
+		}
 	}
 
 	parts := strings.Split(raw.Key, "+")
@@ -85,12 +105,12 @@ func parseRawKeybinding(raw RawKeyBinding, defaultModifier uint16) (Keybinding, 
 	if len(parts) >= 2 {
 		for _, m := range modifiers {
 			if !slices.Contains(constants.ValidModifiers, m) {
-				return Keybinding{}, fmt.Errorf("unknown modifier %q in keybinding %q", m, raw.Key)
+				return kb, fmt.Errorf("unknown modifier %q in keybinding %q", m, raw.Key)
 			}
 
 			val, ok := constants.KeycodeMap[m]
 			if !ok {
-				return Keybinding{}, fmt.Errorf("unknown keycode string literal %q in keybinding %q", m, raw.Key)
+				return kb, fmt.Errorf("unknown keycode string literal %q in keybinding %q", m, raw.Key)
 			}
 
 			mod |= val
@@ -99,7 +119,7 @@ func parseRawKeybinding(raw RawKeyBinding, defaultModifier uint16) (Keybinding, 
 
 	keycode, ok := constants.KeycodeMap[key]
 	if !ok {
-		return Keybinding{}, fmt.Errorf("unknown keycode string literal %q in keybinding %q", key, raw.Key)
+		return kb, fmt.Errorf("unknown keycode string literal %q in keybinding %q", key, raw.Key)
 	}
 
 	return Keybinding{
@@ -108,6 +128,7 @@ func parseRawKeybinding(raw RawKeyBinding, defaultModifier uint16) (Keybinding, 
 		Keycode: keycode,
 		Command: raw.Command,
 		Action:  Action(raw.Action),
+		Args:    raw.Args,
 	}, nil
 }
 
