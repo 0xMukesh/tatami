@@ -64,8 +64,11 @@ func (wm *Wm) handleExposeEvent(v xproto.ExposeEvent) {
 	}
 
 	ws := wm.workspaces[wm.activeWorkspace]
-	if v.Window == ws.tabBar {
+	switch v.Window {
+	case ws.tabBar:
 		wm.renderTabBarWindow()
+	case ws.bottomBar:
+		wm.renderBottomBarWindow()
 	}
 }
 
@@ -149,14 +152,18 @@ func (wm *Wm) handleMapRequest(v xproto.MapRequestEvent) {
 		return
 	}
 
+	screenWidth := wm.screen.WidthInPixels
+	screenHeight := wm.screen.HeightInPixels
+	tabBarHeight := wm.config.TabBarConfig.Height
+	bottomBarHeight := wm.config.BottomBarConfig.Height
+
 	if err := xproto.ConfigureWindowChecked(
 		wm.conn,
 		win,
 		xproto.ConfigWindowX|xproto.ConfigWindowY|xproto.ConfigWindowWidth|xproto.ConfigWindowHeight,
 		[]uint32{
-			0, uint32(wm.config.TabBarConfig.Height),
-			uint32(wm.screen.WidthInPixels),
-			uint32(wm.screen.HeightInPixels) - uint32(wm.config.TabBarConfig.Height),
+			0, uint32(tabBarHeight),
+			uint32(screenWidth), uint32(screenHeight) - uint32(tabBarHeight) - uint32(bottomBarHeight),
 		},
 	).Check(); err != nil {
 		slog.Error("failed to configure child window", slog.String("error", err.Error()))

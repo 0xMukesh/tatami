@@ -12,17 +12,26 @@ import (
 )
 
 type Workspace struct {
-	frame   xproto.Window
-	tabBar  xproto.Window
-	clients []xproto.Window
-	active  int
+	frame     xproto.Window
+	tabBar    xproto.Window
+	bottomBar xproto.Window
+	clients   []xproto.Window
+	active    int
+}
+
+type GcPair struct {
+	Fill xproto.Gcontext
+	Text xproto.Gcontext
+}
+
+type GcState struct {
+	Active   GcPair
+	Inactive GcPair
 }
 
 type GcCache struct {
-	activeFill   xproto.Gcontext
-	activeText   xproto.Gcontext
-	inactiveFill xproto.Gcontext
-	inactiveText xproto.Gcontext
+	Tab    GcState
+	Bottom GcState
 }
 
 type Wm struct {

@@ -8,6 +8,13 @@ general:
     active_text: 0xffffff
     inactive_text: 0xa3a3a3
 
+  bottom_bar:
+    height: 20
+    active_bg: 0x00a3cc
+    inactive_bg: 0xf2f2f2
+    active_text: 0xffffff
+    inactive_text: 0xc3c3c3
+
 keybindings:
   modifier: "mod1"
 

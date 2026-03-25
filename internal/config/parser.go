@@ -13,13 +13,14 @@ import (
 )
 
 type WmConfig struct {
-	Modifier     uint16
-	Bg           uint32
-	Keybindings  []Keybinding
-	TabBarConfig TabBarConfig
+	Modifier        uint16
+	Bg              uint32
+	Keybindings     []Keybinding
+	TabBarConfig    BarConfig
+	BottomBarConfig BarConfig
 }
 
-type TabBarConfig struct {
+type BarConfig struct {
 	Height       uint16 `mapstructure:"height"`
 	ActiveBg     uint32 `mapstructure:"active_bg"`
 	InactiveBg   uint32 `mapstructure:"inactive_bg"`
@@ -141,9 +142,14 @@ func parse() (WmConfig, error) {
 		bindings = append(bindings, kb)
 	}
 
-	var tabBarConfig TabBarConfig
+	var tabBarConfig BarConfig
 	if err := viper.UnmarshalKey("general.tab_bar", &tabBarConfig); err != nil {
 		return WmConfig{}, fmt.Errorf("could not parse tab bar config - %w", err)
+	}
+
+	var bottomBarConfig BarConfig
+	if err := viper.UnmarshalKey("general.bottom_bar", &bottomBarConfig); err != nil {
+		return WmConfig{}, fmt.Errorf("could not parse bottom bar config - %w", err)
 	}
 
 	if len(errs) > 0 {
@@ -151,10 +157,11 @@ func parse() (WmConfig, error) {
 	}
 
 	return WmConfig{
-		Modifier:     defaultModifierVal,
-		Bg:           bg,
-		Keybindings:  bindings,
-		TabBarConfig: tabBarConfig,
+		Modifier:        defaultModifierVal,
+		Bg:              bg,
+		Keybindings:     bindings,
+		TabBarConfig:    tabBarConfig,
+		BottomBarConfig: bottomBarConfig,
 	}, nil
 }
 

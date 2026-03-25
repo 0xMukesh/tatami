@@ -4,102 +4,50 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/0xmukesh/tatami/internal/config"
 	"github.com/0xmukesh/tatami/internal/constants"
 	"github.com/jezek/xgb/xproto"
 )
 
-func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
-	if ws, ok := wm.workspaces[workspace]; ok {
-		return ws, nil
-	}
-
-	frame, err := xproto.NewWindowId(wm.conn)
+func (wm *Wm) createBarGcState(cfg config.BarConfig) (GcState, error) {
+	activeFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{cfg.ActiveBg})
 	if err != nil {
-		return ws, fmt.Errorf("failed to assign frame window id - %w", err)
+		return GcState{}, fmt.Errorf("active fill: %w", err)
 	}
 
-	if err := xproto.CreateWindowChecked(
-		wm.conn,
-		wm.screen.RootDepth,
-		frame,
-		wm.root,
-		0, 0,
-		wm.screen.WidthInPixels, wm.screen.HeightInPixels,
-		0,
-		xproto.WindowClassInputOutput,
-		wm.screen.RootVisual,
-		xproto.CwBackPixel|xproto.CwEventMask,
-		[]uint32{
-			wm.config.Bg,
-			xproto.EventMaskSubstructureNotify | xproto.EventMaskSubstructureRedirect,
-		},
-	).Check(); err != nil {
-		return ws, fmt.Errorf("failed to create frame window - %w", err)
-	}
-
-	tabBar, err := xproto.NewWindowId(wm.conn)
+	inactiveFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{cfg.InactiveBg})
 	if err != nil {
-		return ws, fmt.Errorf("failed to assign tab bar window id - %w", err)
+		return GcState{}, fmt.Errorf("inactive fill: %w", err)
 	}
 
-	if err := xproto.CreateWindowChecked(
-		wm.conn,
-		wm.screen.RootDepth,
-		tabBar,
-		frame,
-		0, 0,
-		wm.screen.WidthInPixels, wm.config.TabBarConfig.Height,
-		0,
-		xproto.WindowClassInputOutput,
-		wm.screen.RootVisual,
-		xproto.CwBackPixel|xproto.CwEventMask,
-		[]uint32{
-			wm.config.TabBarConfig.InactiveBg,
-			xproto.EventMaskExposure,
-		},
-	).Check(); err != nil {
-		return ws, fmt.Errorf("failed to create tab bar window - %w", err)
+	activeText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{cfg.ActiveText, cfg.ActiveBg})
+	if err != nil {
+		return GcState{}, fmt.Errorf("active text: %w", err)
 	}
 
-	if err := xproto.MapWindowChecked(wm.conn, frame).Check(); err != nil {
-		return ws, fmt.Errorf("failed to map frame window - %w", err)
+	inactiveText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{cfg.InactiveText, cfg.InactiveBg})
+	if err != nil {
+		return GcState{}, fmt.Errorf("inactive text: %w", err)
 	}
 
-	wm.registerShortcuts(frame)
-
-	return &Workspace{
-		frame:  frame,
-		tabBar: tabBar,
+	return GcState{
+		Active:   GcPair{Fill: activeFill, Text: activeText},
+		Inactive: GcPair{Fill: inactiveFill, Text: inactiveText},
 	}, nil
 }
 
 func (wm *Wm) setupGcCache() (gc GcCache, err error) {
-	activeFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{wm.config.TabBarConfig.ActiveBg})
+	gc.Tab, err = wm.createBarGcState(wm.config.TabBarConfig)
 	if err != nil {
-		return gc, fmt.Errorf("failed to create active fill gc - %w", err)
+		return gc, fmt.Errorf("failed to setup tab bar gc cache - %w", err)
 	}
 
-	inactiveFill, err := wm.createGraphicalContext(xproto.GcForeground, []uint32{wm.config.TabBarConfig.InactiveBg})
+	gc.Bottom, err = wm.createBarGcState(wm.config.BottomBarConfig)
 	if err != nil {
-		return gc, fmt.Errorf("failed to create inactive fill gc - %w", err)
+		return gc, fmt.Errorf("failed to setup bottom bar gc cache - %w", err)
 	}
 
-	activeText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{wm.config.TabBarConfig.ActiveText, wm.config.TabBarConfig.ActiveBg})
-	if err != nil {
-		return gc, fmt.Errorf("failed to create active text gc - %w", err)
-	}
-
-	inactiveText, err := wm.createGraphicalContext(xproto.GcForeground|xproto.GcBackground, []uint32{wm.config.TabBarConfig.InactiveText, wm.config.TabBarConfig.InactiveBg})
-	if err != nil {
-		return gc, fmt.Errorf("failed to create inactive text gc - %w", err)
-	}
-
-	return GcCache{
-		activeFill:   activeFill,
-		activeText:   activeText,
-		inactiveFill: inactiveFill,
-		inactiveText: inactiveText,
-	}, nil
+	return gc, nil
 }
 
 func (wm *Wm) registerShortcuts(window xproto.Window) {
