@@ -10,8 +10,8 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
-func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
-	if ws, ok := wm.workspaces[workspace]; ok {
+func (wm *Wm) createWorkspace(wsNum int, mapFrameWindow bool) (ws *Workspace, err error) {
+	if ws, ok := wm.workspaces[wsNum]; ok {
 		return ws, nil
 	}
 
@@ -63,16 +63,20 @@ func (wm *Wm) createWorkspace(workspace int) (ws *Workspace, err error) {
 		return ws, fmt.Errorf("failed to create tab bar window - %w", err)
 	}
 
-	if err := xproto.MapWindowChecked(wm.conn, frame).Check(); err != nil {
-		return ws, fmt.Errorf("failed to map frame window - %w", err)
+	if mapFrameWindow {
+		if err := xproto.MapWindowChecked(wm.conn, frame).Check(); err != nil {
+			return ws, fmt.Errorf("failed to map frame window - %w", err)
+		}
 	}
 
 	wm.registerShortcuts(frame)
-
-	return &Workspace{
+	ws = &Workspace{
 		frame:  frame,
 		tabBar: tabBar,
-	}, nil
+	}
+
+	wm.workspaces[wsNum] = ws
+	return
 }
 
 func (wm *Wm) renderTabBarWindow() {
@@ -128,7 +132,6 @@ func (wm *Wm) renderTabBarWindow() {
 func (wm *Wm) renderBottomBarWindow() {
 	width := 20
 
-	// clear previous state before redrawing
 	if err := xproto.PolyFillRectangleChecked(
 		wm.conn, xproto.Drawable(wm.bottomBar),
 		wm.gcCache.Bottom.Inactive.Fill,

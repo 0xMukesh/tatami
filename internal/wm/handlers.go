@@ -71,7 +71,7 @@ func (wm *Wm) handleFocusWorkspace(wsNum int) {
 	wm.activeWorkspace = newIdx
 
 	if !ok {
-		ws, err := wm.createWorkspace(newIdx)
+		ws, err := wm.createWorkspace(newIdx, true)
 		if err != nil {
 			slog.Error("failed to create new workspace", slog.String("error", err.Error()))
 			return
@@ -81,7 +81,6 @@ func (wm *Wm) handleFocusWorkspace(wsNum int) {
 		newWs = ws
 	}
 
-	// unmap current workspace's frame window, active window and tab bar
 	if err := xproto.UnmapWindowChecked(wm.conn, currWs.frame).Check(); err != nil {
 		slog.Error("failed to unmap frame window", slog.String("error", err.Error()))
 		return
@@ -104,7 +103,6 @@ func (wm *Wm) handleFocusWorkspace(wsNum int) {
 		delete(wm.workspaces, currIdx)
 	}
 
-	// map new workspace's frame window, active window and tab bar
 	if err := xproto.MapWindowChecked(wm.conn, newWs.frame).Check(); err != nil {
 		slog.Error("failed to map new ws frame window", slog.String("error", err.Error()))
 		return
@@ -115,15 +113,89 @@ func (wm *Wm) handleFocusWorkspace(wsNum int) {
 			slog.Error("failed to map window", slog.String("error", err.Error()))
 			return
 		}
-	}
 
-	if len(newWs.clients) > 0 {
 		if err := xproto.MapWindowChecked(wm.conn, newWs.tabBar).Check(); err != nil {
 			slog.Error("failed to map tab bar", slog.String("error", err.Error()))
 			return
 		}
+
+		if err := xproto.SetInputFocusChecked(
+			wm.conn, xproto.InputFocusPointerRoot, newWs.clients[newWs.active], xproto.TimeCurrentTime,
+		).Check(); err != nil {
+			slog.Error("failed to focus client window", slog.String("error", err.Error()))
+			return
+		}
+	} else {
+		if err := xproto.SetInputFocusChecked(
+			wm.conn, xproto.InputFocusPointerRoot, newWs.frame, xproto.TimeCurrentTime,
+		).Check(); err != nil {
+			slog.Error("failed to focus frame window", slog.String("error", err.Error()))
+			return
+		}
 	}
 
+	wm.renderBottomBarWindow()
+}
+
+func (wm *Wm) handleMoveWindowToWorkspace(wsNum int) {
+	currIdx := wm.activeWorkspace
+	newIdx := wsNum - 1
+	currWs := wm.workspaces[currIdx]
+	newWs, ok := wm.workspaces[newIdx]
+
+	if len(currWs.clients) == 0 {
+		return
+	}
+
+	if !ok {
+		ws, err := wm.createWorkspace(newIdx, false)
+		if err != nil {
+			slog.Error("failed to create new workspace", slog.String("error", err.Error()))
+			return
+		}
+
+		newWs = ws
+	}
+
+	win := currWs.clients[currWs.active]
+
+	if err := xproto.ReparentWindowChecked(
+		wm.conn, win,
+		newWs.frame,
+		0, int16(wm.config.TabBarConfig.Height),
+	).Check(); err != nil {
+		slog.Error("failed to reparent window", slog.String("error", err.Error()))
+		return
+	}
+
+	if err := xproto.UnmapWindowChecked(wm.conn, win).Check(); err != nil {
+		slog.Error("failed to unmap window", slog.String("error", err.Error()))
+		return
+	}
+
+	currWs.clients = slices.DeleteFunc(currWs.clients, func(e xproto.Window) bool { return e == win })
+	if currWs.active >= len(currWs.clients) && currWs.active > 0 {
+		currWs.active = len(currWs.clients) - 1
+	}
+
+	if len(currWs.clients) > 0 {
+		if err := xproto.MapWindowChecked(wm.conn, currWs.clients[currWs.active]).Check(); err != nil {
+			slog.Error("failed to map remaining window", slog.String("error", err.Error()))
+			return
+		}
+	} else {
+		if err := xproto.UnmapWindowChecked(wm.conn, currWs.tabBar).Check(); err != nil {
+			slog.Error("failed to unmap tab bar", slog.String("error", err.Error()))
+			return
+		}
+	}
+
+	newWs.clients = append(newWs.clients, win)
+	newWs.active = len(newWs.clients) - 1
+
+	wm.workspaces[newIdx] = newWs
+
+	wm.renderTabBarWindow()
 	wm.renderBottomBarWindow()
 }
 

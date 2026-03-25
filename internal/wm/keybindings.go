@@ -67,6 +67,16 @@ func (wm *Wm) setupKeybindings() {
 
 				wm.handleFocusWorkspace(wsNum)
 			}
+		case config.ActionMoveWindowToWorkspace:
+			handler = func() {
+				wsNum, err := strconv.Atoi(kb.Args)
+				if err != nil {
+					slog.Error("invalid ws num", slog.String("got", kb.Args), slog.String("error", err.Error()))
+					return
+				}
+
+				wm.handleMoveWindowToWorkspace(wsNum)
+			}
 		case config.ActionQuit:
 			handler = func() {
 				wm.Close()

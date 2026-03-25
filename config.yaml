@@ -84,3 +84,43 @@ keybindings:
     - key: "0"
       action: "focus_workspace"
       args: "10"
+
+    - key: "shift+1"
+      action: "move_window_to_workspace"
+      args: "1"
+
+    - key: "shift+2"
+      action: "move_window_to_workspace"
+      args: "2"
+
+    - key: "shift+3"
+      action: "move_window_to_workspace"
+      args: "3"
+
+    - key: "shift+4"
+      action: "move_window_to_workspace"
+      args: "4"
+
+    - key: "shift+5"
+      action: "move_window_to_workspace"
+      args: "5"
+
+    - key: "shift+6"
+      action: "move_window_to_workspace"
+      args: "6"
+
+    - key: "shift+7"
+      action: "move_window_to_workspace"
+      args: "7"
+
+    - key: "shift+8"
+      action: "move_window_to_workspace"
+      args: "8"
+
+    - key: "shift+9"
+      action: "move_window_to_workspace"
+      args: "9"
+
+    - key: "shift+0"
+      action: "move_window_to_workspace"
+      args: "10"

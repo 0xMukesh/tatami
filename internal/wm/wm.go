@@ -87,11 +87,10 @@ func New(wmConfig config.WmConfig) (*Wm, error) {
 		return nil, fmt.Errorf("could not become wm - %w", err)
 	}
 
-	defaultWorkspace, err := wm.createWorkspace(0)
+	_, err = wm.createWorkspace(0, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create default workspace - %w", err)
 	}
-	wm.workspaces[0] = defaultWorkspace
 
 	bottomBar, err := wm.setupBottomBar()
 	if err != nil {
